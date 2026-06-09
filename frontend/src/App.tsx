@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
-import { verdictColor, riskBg, fmtDuration } from "./ui";
+import { verdictColor, riskBg, fmtDuration, verdictExplain, factorExplain, flightRiskExplain } from "./ui";
+import { Tooltip, HintMark } from "./Tooltip";
 import { MethodologyDrawer } from "./MethodologyDrawer";
-import type { HubTile, RouteAssessment, CommunicateResult, AirportAssessment, Flight } from "./types";
+import type { HubTile, RouteAssessment, CommunicateResult, AirportAssessment, Flight, Verdict } from "./types";
+
+// Default departure date: ~3 days out (matches backend default).
+const DEFAULT_DATE = (() => {
+  const d = new Date();
+  d.setDate(d.getDate() + 3);
+  return d.toISOString().slice(0, 10);
+})();
 
 function SourceBadges({ sources }: { sources: Record<string, string> }) {
   return (
@@ -33,8 +41,16 @@ function AirportGauge({ a, label }: { a: AirportAssessment; label: string }) {
         {label} · {a.iata}
       </div>
       <div style={{ fontSize: 13, color: "var(--txt-dim)", margin: "2px 0 14px" }}>{a.airport.name}</div>
-      <div className="gauge-num" style={{ color: verdictColor(a.verdict) }}>{a.score}</div>
-      <div className="gauge-label" style={{ color: verdictColor(a.verdict) }}>{a.verdict}</div>
+      <Tooltip text={verdictExplain(a.score, a.verdict)}>
+        <div>
+          <div className="gauge-num" style={{ color: verdictColor(a.verdict) }}>
+            {a.score}<span style={{ fontSize: 18, color: "var(--txt-faint)" }}>/100</span>
+          </div>
+          <div className="gauge-label" style={{ color: verdictColor(a.verdict), display: "flex", alignItems: "center" }}>
+            {a.verdict}<HintMark />
+          </div>
+        </div>
+      </Tooltip>
       <SourceBadges sources={a.sources} />
       <div style={{ marginTop: 18 }}>
         {a.factors.length === 0 && (
@@ -43,15 +59,17 @@ function AirportGauge({ a, label }: { a: AirportAssessment; label: string }) {
           </div>
         )}
         {a.factors.map((f, i) => (
-          <div className="factor" key={i}>
-            <div className="factor-top">
-              <span>{f.signal} <span className="node-tag">[{f.node}]</span></span>
-              <span style={{ color: "var(--amber)" }}>+{f.points}</span>
+          <Tooltip key={i} text={factorExplain(f.node, f.signal, f.points, f.terms)} pos="right">
+            <div className="factor" style={{ width: "100%" }}>
+              <div className="factor-top">
+                <span>{f.signal} <span className="node-tag">[{f.node}]</span><HintMark /></span>
+                <span style={{ color: "var(--amber)" }}>+{f.points}</span>
+              </div>
+              <div className="factor-bar">
+                <div className="factor-fill" style={{ width: `${Math.min(100, f.points)}%` }} />
+              </div>
             </div>
-            <div className="factor-bar">
-              <div className="factor-fill" style={{ width: `${Math.min(100, f.points)}%` }} />
-            </div>
-          </div>
+          </Tooltip>
         ))}
       </div>
     </div>
@@ -62,6 +80,7 @@ export default function App() {
   const [hubs, setHubs] = useState<HubTile[]>([]);
   const [origin, setOrigin] = useState("LHR");
   const [dest, setDest] = useState("SIN");
+  const [date, setDate] = useState(DEFAULT_DATE);
   const [route, setRoute] = useState<RouteAssessment | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -77,7 +96,7 @@ export default function App() {
   async function assess(o = origin, d = dest) {
     setLoading(true); setError(""); setRoute(null); setSelected(null); setOutreach(null);
     try {
-      const r = await api.route(o.toUpperCase(), d.toUpperCase());
+      const r = await api.route(o.toUpperCase(), d.toUpperCase(), date);
       setRoute(r);
     } catch (e) {
       setError(`Could not assess ${o.toUpperCase()} → ${d.toUpperCase()}. Check the airport codes.`);
@@ -89,7 +108,7 @@ export default function App() {
   async function pickFlight(i: number) {
     setSelected(i); setOutreach(null); setComposing(true);
     try {
-      const r = await api.communicate(origin.toUpperCase(), dest.toUpperCase(), i);
+      const r = await api.communicate(origin.toUpperCase(), dest.toUpperCase(), i, date);
       setOutreach(r);
     } catch {
       setError("Outreach unavailable — flight list may be degraded (SerpAPI key needed).");
@@ -124,6 +143,10 @@ export default function App() {
             <span className="od-arrow">→</span>
             <input className="od-input" value={dest} maxLength={3}
               onChange={(e) => setDest(e.target.value)} placeholder="SIN" />
+            <Tooltip text="Departure date for the live flight list. Defaults to 3 days out for availability. Risk conditions (weather, news, traffic) are always assessed for right now.">
+              <input className="od-input" type="date" value={date} style={{ width: "auto" }}
+                onChange={(e) => setDate(e.target.value)} />
+            </Tooltip>
             <button className="btn" onClick={() => assess()} disabled={loading || !origin || !dest}>
               {loading ? "Assessing…" : "Assess Risk"}
             </button>
@@ -159,25 +182,49 @@ export default function App() {
             </div>
             <div className="disclaimer">{route.disclaimer}</div>
 
+            {/* Verdict legend — shared key for all scores on the page */}
+            <div className="legend">
+              {([["LOW", "0–24"], ["MODERATE", "25–44"], ["ELEVATED", "45–69"], ["HIGH", "70+"]] as [Verdict, string][]).map(
+                ([v, range]) => (
+                  <span className="legend-item" key={v}>
+                    <span className="legend-dot" style={{ background: verdictColor(v) }} /> {v} <span style={{ opacity: 0.6 }}>{range}</span>
+                  </span>
+                )
+              )}
+            </div>
+
             {/* SCREEN 2b — FLIGHTS */}
             <SectionHead idx="03" title="Live Flights · Risk Overlay" />
+            {route.outbound_date && route.flights.length > 0 && (
+              <div className="flights-date">
+                Showing <b>{route.flights.length}</b> live flights departing <b>{route.outbound_date}</b>.
+                Use the date picker above to change it. Each flight carries the live route risk plus its departure-window adjustment.
+              </div>
+            )}
             {route.flights.length === 0 && (
               <div className="disclaimer">
-                Flight list is degraded (SerpAPI key needed in production). Risk scoring above is fully live.
+                No flights returned for this route/date (try a major route or a different date). Risk scoring above is fully live.
               </div>
             )}
             {route.flights.map((f: Flight, i) => (
               <div key={i} className={`flight ${selected === i ? "selected" : ""}`} onClick={() => pickFlight(i)}>
-                <div className="flight-meta">
-                  <div className="flight-airline">{f.airline} {f.flight_number}</div>
-                  <div className="flight-time">
-                    {f.depart} → {f.arrive} · {fmtDuration(f.duration_min)}
-                    {f.stops > 0 ? ` · ${f.stops} stop` : " · nonstop"}
+                <div className="flight-left">
+                  {f.logo
+                    ? <img className="flight-logo" src={f.logo} alt={f.airline} loading="lazy" />
+                    : <div className="flight-logo" style={{ background: "var(--surface-2)" }} />}
+                  <div className="flight-meta">
+                    <div className="flight-airline">{f.airline} {f.flight_number}</div>
+                    <div className="flight-time">
+                      {f.depart} → {f.arrive} · {fmtDuration(f.duration_min)}
+                      {f.stops > 0 ? ` · ${f.stops} stop` : " · nonstop"}
+                    </div>
                   </div>
                 </div>
-                <div className="risk-chip" style={{ background: riskBg(f.risk_verdict), color: verdictColor(f.risk_verdict) }}>
-                  {f.risk} · {f.risk_verdict}
-                </div>
+                <Tooltip text={flightRiskExplain(f.risk, f.risk_verdict)}>
+                  <div className="risk-chip" style={{ background: riskBg(f.risk_verdict), color: verdictColor(f.risk_verdict) }}>
+                    {f.risk} · {f.risk_verdict}<HintMark />
+                  </div>
+                </Tooltip>
               </div>
             ))}
 

@@ -71,11 +71,11 @@ async def airport_detail(iata: str):
 
 
 @app.get("/api/route")
-async def route(origin: str, dest: str):
-    """Assess a route + live flight list (Screen 1 -> 2)."""
+async def route(origin: str, dest: str, date: str | None = None):
+    """Assess a route + live flight list (Screen 1 -> 2). Optional date=YYYY-MM-DD."""
     if not origin or not dest:
         raise HTTPException(status_code=400, detail="origin and dest required")
-    result = await predictor.assess_route(origin, dest)
+    result = await predictor.assess_route(origin, dest, date)
     if result.get("error"):
         raise HTTPException(status_code=404, detail=result)
     return result
@@ -85,12 +85,13 @@ class CommunicateRequest(BaseModel):
     origin: str
     dest: str
     flight_index: int = 0
+    date: str | None = None
 
 
 @app.post("/api/communicate")
 async def communicate(req: CommunicateRequest):
     """Proactive passenger outreach for a chosen flight (Screen 3)."""
-    route_result = await predictor.assess_route(req.origin, req.dest)
+    route_result = await predictor.assess_route(req.origin, req.dest, req.date)
     if route_result.get("error"):
         raise HTTPException(status_code=404, detail=route_result)
     flights = route_result.get("flights", [])

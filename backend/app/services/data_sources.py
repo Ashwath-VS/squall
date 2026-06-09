@@ -120,11 +120,13 @@ async def fetch_news(client: httpx.AsyncClient, iata: str, name: str = "") -> Di
 
 
 # ── Real flights on a route (SerpAPI Google Flights) ─────────────────────────
-async def fetch_flights(client: httpx.AsyncClient, origin: str, dest: str) -> Dict[str, Any]:
+async def fetch_flights(
+    client: httpx.AsyncClient, origin: str, dest: str, outbound_date: str | None = None
+) -> Dict[str, Any]:
     if not Config.SERPAPI_KEY:
-        return {"source": "degraded", "reason": "no_serpapi_key", "flights": []}
-    # Google Flights requires an outbound_date. Use ~3 days out for availability.
-    outbound = (datetime.date.today() + datetime.timedelta(days=3)).isoformat()
+        return {"source": "degraded", "reason": "no_serpapi_key", "flights": [], "outbound_date": outbound_date}
+    # Google Flights requires an outbound_date. Default ~3 days out for availability.
+    outbound = outbound_date or (datetime.date.today() + datetime.timedelta(days=3)).isoformat()
     try:
         r = await client.get(
             "https://serpapi.com/search",
@@ -144,7 +146,7 @@ async def fetch_flights(client: httpx.AsyncClient, origin: str, dest: str) -> Di
         data = r.json()
         raw = (data.get("best_flights") or []) + (data.get("other_flights") or [])
         flights: List[Dict[str, Any]] = []
-        for f in raw[:12]:
+        for f in raw[:20]:
             legs = f.get("flights", [])
             if not legs:
                 continue
@@ -159,7 +161,7 @@ async def fetch_flights(client: httpx.AsyncClient, origin: str, dest: str) -> Di
                 "stops": len(legs) - 1,
                 "price": f.get("price"),
             })
-        return {"source": "live", "flights": flights}
+        return {"source": "live", "flights": flights, "outbound_date": outbound}
     except Exception as exc:
         _log.warning(f"SerpAPI Flights failed for {origin}->{dest}: {exc}")
-        return {"source": "degraded", "reason": "flights_api_error", "flights": []}
+        return {"source": "degraded", "reason": "flights_api_error", "flights": [], "outbound_date": outbound}

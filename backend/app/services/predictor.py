@@ -169,16 +169,17 @@ async def _assess_airport_uncached(iata: str, client: Optional[httpx.AsyncClient
     }
 
 
-async def assess_route(origin: str, dest: str) -> Dict[str, Any]:
+async def assess_route(origin: str, dest: str, outbound_date: str | None = None) -> Dict[str, Any]:
     """Full route assessment: both endpoints + live flight list (all concurrent)."""
     origin, dest = origin.strip().upper(), dest.strip().upper()
+    date_key = outbound_date or "default"
 
     async with httpx.AsyncClient() as client:
         o, d, flights_data = await asyncio.gather(
             assess_airport(origin, client),
             assess_airport(dest, client),
-            get_or_set(f"flights:{origin}:{dest}",
-                       lambda: data_sources.fetch_flights(client, origin, dest)),
+            get_or_set(f"flights:{origin}:{dest}:{date_key}",
+                       lambda: data_sources.fetch_flights(client, origin, dest, outbound_date)),
         )
 
     if o.get("error"):
@@ -202,5 +203,6 @@ async def assess_route(origin: str, dest: str) -> Dict[str, Any]:
         "dominant_endpoint": origin if o["score"] >= d["score"] else dest,
         "flights": flights,
         "flights_source": flights_data.get("source"),
+        "outbound_date": flights_data.get("outbound_date"),
         "disclaimer": "Risk = route/airport conditions, not tail-specific ops data.",
     }

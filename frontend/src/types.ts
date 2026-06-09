@@ -58,6 +58,7 @@ export interface RouteAssessment {
   dominant_endpoint: string;
   flights: Flight[];
   flights_source: SourceFlag;
+  outbound_date: string | null;
   disclaimer: string;
 }
 

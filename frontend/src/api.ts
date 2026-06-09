@@ -20,14 +20,14 @@ async function get<T>(path: string): Promise<T> {
 export const api = {
   overview: () => get<{ hubs: HubTile[] }>("/api/overview"),
   airport: (iata: string) => get<AirportAssessment>(`/api/airport/${iata}`),
-  route: (origin: string, dest: string) =>
-    get<RouteAssessment>(`/api/route?origin=${origin}&dest=${dest}`),
+  route: (origin: string, dest: string, date?: string) =>
+    get<RouteAssessment>(`/api/route?origin=${origin}&dest=${dest}${date ? `&date=${date}` : ""}`),
   methodology: () => get<Methodology>("/api/methodology"),
-  communicate: async (origin: string, dest: string, flight_index: number) => {
+  communicate: async (origin: string, dest: string, flight_index: number, date?: string) => {
     const r = await fetch(`${BASE}/api/communicate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ origin, dest, flight_index }),
+      body: JSON.stringify({ origin, dest, flight_index, date }),
     });
     if (!r.ok) throw new Error(`communicate → ${r.status}`);
     return r.json() as Promise<CommunicateResult>;

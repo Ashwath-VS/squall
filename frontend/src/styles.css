@@ -137,6 +137,35 @@ body {
 .src-feeds { font-size: 12px; color: var(--txt-dim); margin-top: 4px; }
 .src-cadence { font-family: var(--mono); font-size: 10px; color: var(--txt-faint); margin-top: 3px; }
 
+/* ── Tooltip ── */
+.tip { position: relative; display: inline-flex; align-items: center; cursor: help; }
+.tip-box {
+  visibility: hidden; opacity: 0; position: absolute; z-index: 100;
+  background: #1c1f25; border: 1px solid var(--border); color: var(--txt-dim);
+  font-family: var(--mono); font-size: 11px; line-height: 1.6; font-weight: 400;
+  letter-spacing: 0; text-transform: none; text-align: left;
+  padding: 11px 13px; border-radius: 7px; width: max-content; max-width: 290px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.5); transition: opacity .14s; pointer-events: none;
+}
+.tip-top { bottom: 135%; left: 50%; transform: translateX(-50%); }
+.tip-right { left: 125%; top: 50%; transform: translateY(-50%); }
+.tip:hover .tip-box { visibility: visible; opacity: 1; }
+.hint {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px; margin-left: 6px; border-radius: 50%;
+  border: 1px solid var(--txt-faint); color: var(--txt-faint);
+  font-family: var(--mono); font-size: 9px; font-weight: 700; line-height: 1;
+}
+
+/* ── Airline logo + legend ── */
+.flight-logo { width: 24px; height: 24px; object-fit: contain; border-radius: 5px; background: #fff; padding: 2px; flex-shrink: 0; }
+.flight-left { display: flex; align-items: center; gap: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 6px 0 18px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; color: var(--txt-faint); }
+.legend-dot { width: 9px; height: 9px; border-radius: 2px; }
+.flights-date { font-family: var(--mono); font-size: 11px; color: var(--txt-dim); margin-bottom: 14px; }
+.flights-date b { color: var(--amber); }
+
 .footer { border-top: 1px solid var(--border); margin-top: 70px; padding: 30px 0; font-family: var(--mono); font-size: 11px; color: var(--txt-faint); }
 .spinner { font-family: var(--mono); font-size: 12px; color: var(--amber); }
 .err { font-family: var(--mono); font-size: 12px; color: var(--high); }
