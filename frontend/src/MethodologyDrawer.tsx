@@ -50,23 +50,45 @@ export function MethodologyDrawer({ onClose }: { onClose: () => void }) {
         )}
 
         {data && tab === "Scoring Cascade" && (
-          <div className="mono" style={{ fontSize: 12, lineHeight: 1.9, color: "var(--txt-dim)" }}>
-            <p style={{ marginBottom: 12 }}>
-              Deterministic — <strong style={{ color: "var(--amber)" }}>no LLM in the math</strong>.
+          <div style={{ fontSize: 13, lineHeight: 1.75, color: "var(--txt-dim)" }}>
+            <p style={{ marginBottom: 16 }}>
+              How we turn live data into one risk score from 0 to 100. There's <strong style={{ color: "var(--amber)" }}>no
+              AI guesswork here</strong> — it's a plain formula you can check.
             </p>
-            <p>// WEIGHTED BLEND</p>
-            {Object.entries(data.weights).map(([k, v]) => (
-              <div key={k}>{k.padEnd(9)} → {(v as number).toFixed(2)}</div>
-            ))}
-            <p style={{ marginTop: 14 }}>// THRESHOLDS</p>
-            {Object.entries(data.thresholds).map(([k, v]) => (
-              <div key={k}>{k} = {v as number}</div>
-            ))}
-            <p style={{ marginTop: 14 }}>// CASCADE</p>
-            <div>1. Normalise each live signal → 0–100</div>
-            <div>2. Weighted blend (renormalise if a node is missing)</div>
-            <div>3. Route compound = max(origin, dest)</div>
-            <div>4. Per-flight overlay by departure window</div>
+
+            <p style={{ color: "var(--txt)", fontWeight: 600, marginBottom: 4 }}>1 · We check three live things</p>
+            <p style={{ marginBottom: 14 }}>
+              At each airport we look at the <b>weather</b>, recent <b>news</b>, and how <b>busy the skies</b> are
+              right now. Each one gets its own 0–100 score — worse weather, more disruption headlines, or heavier
+              traffic all push that number up.
+            </p>
+
+            <p style={{ color: "var(--txt)", fontWeight: 600, marginBottom: 4 }}>2 · We combine them by importance</p>
+            <p style={{ marginBottom: 8 }}>
+              The three don't count equally. Weather matters most because it causes the most real-world disruption:
+            </p>
+            <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+              <span className="badge badge-sim">Weather {Math.round((data.weights.weather ?? 0.5) * 100)}%</span>
+              <span className="badge badge-sim">News {Math.round((data.weights.news ?? 0.3) * 100)}%</span>
+              <span className="badge badge-sim">Traffic {Math.round((data.weights.traffic ?? 0.2) * 100)}%</span>
+            </div>
+
+            <p style={{ color: "var(--txt)", fontWeight: 600, marginBottom: 4 }}>3 · Missing data doesn't break it</p>
+            <p style={{ marginBottom: 14 }}>
+              If one source isn't available (say a small airport with no news), the other two simply share its
+              importance — so the score still works everywhere, from the busiest hub to a remote regional field.
+            </p>
+
+            <p style={{ color: "var(--txt)", fontWeight: 600, marginBottom: 4 }}>4 · From airport to flight</p>
+            <p style={{ marginBottom: 16 }}>
+              For a route we take the riskier of the two airports. Each flight then nudges up slightly if it leaves
+              later, when conditions are forecast to be worse.
+            </p>
+
+            <div className="disclaimer">
+              What the number means — 0–24: calm. 25–44: minor delays possible. 45–69: delays likely.
+              70+: serious disruption expected.
+            </div>
           </div>
         )}
 

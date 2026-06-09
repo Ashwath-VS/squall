@@ -19,6 +19,8 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html, body { overflow-x: hidden; max-width: 100%; }
+
 body {
   background: var(--bg);
   color: var(--txt);
@@ -92,10 +94,13 @@ body {
 @media (max-width: 720px) { .detail-grid { grid-template-columns: 1fr; } }
 
 /* Raw evidence signal rows under each node */
-.signal-row { display: flex; align-items: center; gap: 8px; padding: 5px 0 5px 4px; width: 100%; }
-.signal-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--amber-dim); flex-shrink: 0; }
-.signal-text { font-family: var(--mono); font-size: 10.5px; color: var(--txt-faint); line-height: 1.4; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.signal-row { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0 5px 4px; width: 100%; min-width: 0; }
+.signal-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--amber-dim); flex-shrink: 0; margin-top: 6px; }
+.signal-text { font-family: var(--mono); font-size: 10.5px; color: var(--txt-faint); line-height: 1.5; flex: 1; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
 .signal-strength { font-family: var(--mono); font-size: 10px; color: var(--txt-faint); opacity: 0.7; flex-shrink: 0; }
+/* Node header label may be long — let it wrap, never overflow */
+.factor-top { min-width: 0; }
+.factor-top > span:first-child { overflow-wrap: anywhere; }
 .od-hint { font-family: var(--mono); font-size: 10.5px; color: var(--txt-faint); margin-top: 8px; min-height: 14px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 22px; }
 .gauge-num { font-family: var(--mono); font-size: 64px; font-weight: 700; line-height: 1; }
@@ -176,4 +181,14 @@ body {
 
 .footer { border-top: 1px solid var(--border); margin-top: 70px; padding: 30px 0; font-family: var(--mono); font-size: 11px; color: var(--txt-faint); }
 .spinner { font-family: var(--mono); font-size: 12px; color: var(--amber); }
+
+/* Staged loading panel */
+.loading-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 26px 28px; max-width: 520px; }
+.loading-title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; color: var(--txt-faint); margin-bottom: 18px; }
+.load-step { display: flex; align-items: center; gap: 11px; font-family: var(--mono); font-size: 12.5px; padding: 8px 0; color: var(--txt-faint); opacity: 0.4; transition: opacity .3s, color .3s; }
+.load-step.active { color: var(--amber); opacity: 1; }
+.load-step.done { color: var(--low); opacity: 1; }
+.load-spin { width: 13px; height: 13px; border: 2px solid var(--amber-faint); border-top-color: var(--amber); border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.load-icon { width: 13px; text-align: center; flex-shrink: 0; }
 .err { font-family: var(--mono); font-size: 12px; color: var(--high); }

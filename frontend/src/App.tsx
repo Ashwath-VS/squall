@@ -17,6 +17,18 @@ const DEFAULT_DATE = addDays(3);
 // so risk is only credible inside that window. Cap the date accordingly.
 const MAX_DATE = addDays(3);
 
+// Staged loading — shows the real pipeline so the result doesn't feel static.
+const LOAD_STEPS = [
+  "Fetching live weather · Open-Meteo",
+  "Scanning disruption news · SerpAPI",
+  "Polling air-traffic density · OpenSky",
+  "Running deterministic risk cascade",
+  "Scoring live flights on the route",
+];
+const STEP_MS = 850;
+const MIN_LOAD_MS = LOAD_STEPS.length * STEP_MS; // ~4.25s minimum
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 function SourceBadges({ sources }: { sources: Record<string, string> }) {
   return (
     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
@@ -100,6 +112,7 @@ export default function App() {
   const [date, setDate] = useState(DEFAULT_DATE);
   const [route, setRoute] = useState<RouteAssessment | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadStep, setLoadStep] = useState(0);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<number | null>(null);
   const [outreach, setOutreach] = useState<CommunicateResult | null>(null);
@@ -136,13 +149,19 @@ export default function App() {
       setError("Departure date cannot be in the past — pick today or a future date.");
       return;
     }
-    setLoading(true); setError(""); setRoute(null); setSelected(null); setOutreach(null);
+    setLoading(true); setLoadStep(0); setError(""); setRoute(null); setSelected(null); setOutreach(null);
+    const t0 = Date.now();
+    const iv = setInterval(() => setLoadStep((s) => Math.min(s + 1, LOAD_STEPS.length - 1)), STEP_MS);
     try {
       const r = await api.route(o.toUpperCase(), d.toUpperCase(), date);
+      // Keep the pipeline visible for a realistic minimum, even when cached.
+      const elapsed = Date.now() - t0;
+      if (elapsed < MIN_LOAD_MS) await sleep(MIN_LOAD_MS - elapsed);
       setRoute(r);
     } catch (e) {
       setError(`Could not assess ${o.toUpperCase()} → ${d.toUpperCase()}. Check the airport codes are valid IATA codes.`);
     } finally {
+      clearInterval(iv);
       setLoading(false);
     }
   }
@@ -175,9 +194,10 @@ export default function App() {
           <div className="kicker">S-ASHWATH / TRAVEL-TECH / IROPS</div>
           <h1>Predict the disruption<br /><span className="accent">before</span> the airline does.</h1>
           <p>
-            Pick a route. Squall pulls live weather, disruption news, and air-traffic density at both
-            endpoints, runs a deterministic risk cascade, then drafts proactive passenger outreach —
-            the forward-looking signal that turns a 3-hour scramble into a minutes-long response.
+            Pick a route. Squall checks live weather, disruption news, and how busy the skies are at both
+            airports, scores the chance of disruption, then drafts passenger messages in advance — so an
+            airline can see trouble coming and act early, instead of scrambling to rebook stranded
+            passengers after a flight is already cancelled.
           </p>
           <div className="search-row">
             <input className="od-input" value={origin} maxLength={3}
@@ -200,8 +220,27 @@ export default function App() {
           {error && <div className="err" style={{ marginTop: 14 }}>{error}</div>}
         </section>
 
+        {/* STAGED LOADING */}
+        {loading && (
+          <section style={{ marginTop: 20 }}>
+            <div className="loading-panel">
+              <div className="loading-title">// ASSESSING {origin.toUpperCase()} → {dest.toUpperCase()} · LIVE PIPELINE</div>
+              {LOAD_STEPS.map((s, i) => (
+                <div key={i} className={`load-step ${i < loadStep ? "done" : i === loadStep ? "active" : ""}`}>
+                  {i < loadStep
+                    ? <span className="load-icon">✓</span>
+                    : i === loadStep
+                      ? <span className="load-spin" />
+                      : <span className="load-icon">·</span>}
+                  {s}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* SCREEN 1 — NETWORK OVERVIEW */}
-        {!route && (
+        {!route && !loading && (
           <section>
             <SectionHead idx="01" title="Network Risk Overview · Live Hubs" />
             <div className="tiles">
