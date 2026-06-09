@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
-import { verdictColor, riskBg, fmtDuration, verdictExplain, nodeExplain, signalExplain, nodeLabel, flightRiskExplain } from "./ui";
+import { verdictColor, riskBg, fmtDuration, fmtUSD, verdictExplain, nodeExplain, signalExplain, nodeLabel, flightRiskExplain } from "./ui";
 import { Tooltip, HintMark } from "./Tooltip";
 import { MethodologyDrawer } from "./MethodologyDrawer";
 import type { HubTile, RouteAssessment, CommunicateResult, AirportAssessment, Flight, Verdict } from "./types";
@@ -320,6 +320,37 @@ export default function App() {
                 {composing && <div className="spinner">Drafting tailored passenger comms…</div>}
                 {outreach && (
                   <>
+                    {/* Monetary impact + revenue model */}
+                    <div className="impact">
+                      <div className="impact-title">// BUSINESS CASE · THIS FLIGHT ({outreach.impact.assumptions.pax_per_flight} PAX · RISK {outreach.impact.risk_pct}%)</div>
+                      <div className="impact-headline">
+                        <span className="impact-big">{fmtUSD(outreach.impact.combined_benefit)}</span>
+                        <span className="impact-eq">
+                          combined value per flight = <b>{fmtUSD(outreach.impact.proactive_saving)}</b> disruption cost avoided
+                          + <b>{fmtUSD(outreach.impact.fee_revenue_per_flight)}</b> protection-fee revenue
+                        </span>
+                      </div>
+                      <div className="impact-grid">
+                        <div className="impact-cell">
+                          <div className="impact-val" style={{ color: "var(--high)" }}>{fmtUSD(outreach.impact.exposure_if_disrupted)}</div>
+                          <div className="impact-lbl">Cost exposure if fully disrupted ({outreach.impact.assumptions.pax_per_flight} pax × ${outreach.impact.assumptions.care_cost_per_pax + outreach.impact.assumptions.compensation_per_pax}/pax care + comp)</div>
+                        </div>
+                        <div className="impact-cell">
+                          <div className="impact-val" style={{ color: "var(--moderate)" }}>{fmtUSD(outreach.impact.expected_reactive_cost)}</div>
+                          <div className="impact-lbl">Expected reactive cost (exposure × {outreach.impact.risk_pct}% live risk)</div>
+                        </div>
+                        <div className="impact-cell">
+                          <div className="impact-val" style={{ color: "var(--low)" }}>{fmtUSD(outreach.impact.proactive_saving)}</div>
+                          <div className="impact-lbl">Saved by acting early (−{outreach.impact.assumptions.proactive_reduction_pct}% via timely re-accommodation)</div>
+                        </div>
+                        <div className="impact-cell">
+                          <div className="impact-val" style={{ color: "var(--amber)" }}>{fmtUSD(outreach.impact.fee_revenue_per_flight)}</div>
+                          <div className="impact-lbl">Protection-fee revenue ({outreach.impact.assumptions.optin_rate_pct}% opt-in × ${outreach.impact.assumptions.protection_fee} — cf. Air Canada "On My Way")</div>
+                        </div>
+                      </div>
+                      <div className="disclaimer">{outreach.impact.note}</div>
+                    </div>
+
                     <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
                       <span className="badge badge-sim">PASSENGER DATA · SIMULATED</span>
                       <span className="mono" style={{ fontSize: 11, color: "var(--txt-faint)" }}>

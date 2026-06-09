@@ -18,6 +18,10 @@ export function riskBg(v: Verdict): string {
   }
 }
 
+export function fmtUSD(n: number): string {
+  return "$" + Math.round(n).toLocaleString("en-US");
+}
+
 export function fmtDuration(min: number | null): string {
   if (!min) return "—";
   const h = Math.floor(min / 60);

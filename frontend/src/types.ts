@@ -80,12 +80,31 @@ export interface OutreachItem {
   message: string;
 }
 
+export interface Impact {
+  assumptions: {
+    pax_per_flight: number;
+    care_cost_per_pax: number;
+    compensation_per_pax: number;
+    proactive_reduction_pct: number;
+    protection_fee: number;
+    optin_rate_pct: number;
+  };
+  risk_pct: number;
+  exposure_if_disrupted: number;
+  expected_reactive_cost: number;
+  proactive_saving: number;
+  fee_revenue_per_flight: number;
+  combined_benefit: number;
+  note: string;
+}
+
 export interface CommunicateResult {
   route: string;
   passenger_data: string;
   disclaimer: string;
   outreach: OutreachItem[];
   drafted: number;
+  impact: Impact;
 }
 
 export interface Methodology {

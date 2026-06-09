@@ -30,6 +30,46 @@ _ARCHETYPES = [
 ]
 
 
+# ── Impact & revenue model (declared, illustrative assumptions) ──────────────
+# These are transparent industry-blended estimates, NOT carrier-specific figures.
+# In production they'd be calibrated to the airline's own cost base.
+PAX_PER_FLIGHT = 180          # typical single-aisle load
+CARE_COST_PER_PAX = 180       # duty of care: hotel + meals if stranded (USD)
+COMPENSATION_PER_PAX = 300    # blended statutory comp exposure (EU261 / APPR), USD
+PROACTIVE_REDUCTION = 0.35    # cost avoided by acting early (fewer missed connections,
+                              # fewer care nights, timely re-accommodation)
+PROTECTION_FEE = 25           # opt-in disruption-protection fee, USD (cf. Air Canada "On My Way")
+OPTIN_RATE = 0.12             # share of passengers who buy the fee
+
+
+def estimate_impact(risk: int) -> Dict[str, Any]:
+    p = max(0.0, min(1.0, risk / 100))
+    reactive_per_pax = CARE_COST_PER_PAX + COMPENSATION_PER_PAX
+    exposure_if_disrupted = PAX_PER_FLIGHT * reactive_per_pax
+    expected_reactive_cost = exposure_if_disrupted * p
+    proactive_saving = expected_reactive_cost * PROACTIVE_REDUCTION
+    fee_revenue = PAX_PER_FLIGHT * OPTIN_RATE * PROTECTION_FEE
+    return {
+        "assumptions": {
+            "pax_per_flight": PAX_PER_FLIGHT,
+            "care_cost_per_pax": CARE_COST_PER_PAX,
+            "compensation_per_pax": COMPENSATION_PER_PAX,
+            "proactive_reduction_pct": round(PROACTIVE_REDUCTION * 100),
+            "protection_fee": PROTECTION_FEE,
+            "optin_rate_pct": round(OPTIN_RATE * 100),
+        },
+        "risk_pct": risk,
+        "exposure_if_disrupted": round(exposure_if_disrupted),
+        "expected_reactive_cost": round(expected_reactive_cost),
+        "proactive_saving": round(proactive_saving),
+        "fee_revenue_per_flight": round(fee_revenue),
+        "combined_benefit": round(proactive_saving + fee_revenue),
+        "note": "Illustrative, industry-blended estimates that scale with the live risk score — "
+                "not carrier figures. Protection-fee model mirrors Air Canada's 'On My Way'. "
+                "Figures are per single flight; network-wide they compound across every departure.",
+    }
+
+
 def build_personas(flight: Dict[str, Any]) -> List[Dict[str, Any]]:
     mix = [dict(a) for a in _ARCHETYPES]
     stops = flight.get("stops", 0)
@@ -85,6 +125,7 @@ def _compose_sync(flight: Dict[str, Any], route: Dict[str, Any]) -> Dict[str, An
         "disclaimer": "Personas are synthetic. Production binds to the carrier PNR/DCS feed.",
         "outreach": results,
         "drafted": sum(1 for r in results if r["message"]),
+        "impact": estimate_impact(int(flight.get("risk", route.get("route_score", 0)))),
     }
 
 

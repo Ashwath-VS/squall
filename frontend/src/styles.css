@@ -1,20 +1,22 @@
 :root {
-  --amber: #ff7043;
-  --amber-dim: rgba(255, 112, 67, 0.5);
-  --amber-faint: rgba(255, 112, 67, 0.12);
-  --bg: #0a0b0d;
-  --surface: #111317;
-  --surface-2: #15181d;
-  --border: rgba(255, 255, 255, 0.08);
-  --txt: #e8e8ea;
-  --txt-dim: #9aa0a8;
-  --txt-faint: #5b626b;
+  /* Squall — distinct light "ivory ops console" palette */
+  --amber: #e8590c;            /* burnt orange — reads sharply on ivory */
+  --amber-bright: #ff6b35;
+  --amber-dim: rgba(232, 89, 12, 0.42);
+  --amber-faint: rgba(232, 89, 12, 0.10);
+  --bg: #f3efe6;               /* ivory */
+  --surface: #fffdf8;          /* warm near-white card */
+  --surface-2: #ebe5d8;
+  --border: rgba(40, 30, 20, 0.13);
+  --txt: #211e18;              /* ink */
+  --txt-dim: #54514a;
+  --txt-faint: #918d83;
   --mono: "JetBrains Mono", monospace;
   --sans: "Space Grotesk", system-ui, sans-serif;
-  --low: #4caf50;
-  --moderate: #ffb74d;
-  --elevated: #ff7043;
-  --high: #ef5350;
+  --low: #2e7d32;
+  --moderate: #d97700;
+  --elevated: #e8590c;
+  --high: #d32f2f;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -37,7 +39,7 @@ body {
   position: sticky; top: 0; z-index: 50;
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px clamp(16px, 4vw, 40px);
-  background: rgba(10, 11, 13, 0.85);
+  background: rgba(243, 239, 230, 0.88);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
@@ -136,6 +138,18 @@ body {
 
 .disclaimer { font-family: var(--mono); font-size: 11px; color: var(--txt-faint); line-height: 1.6; margin-top: 14px; padding: 12px; border-left: 2px solid var(--amber-dim); background: var(--amber-faint); }
 
+/* ── Impact / revenue panel ── */
+.impact { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 22px; margin: 8px 0 16px; }
+.impact-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; color: var(--txt-faint); margin-bottom: 16px; }
+.impact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+.impact-cell { padding: 4px 0; }
+.impact-val { font-family: var(--mono); font-size: 26px; font-weight: 700; line-height: 1; }
+.impact-lbl { font-family: var(--mono); font-size: 10px; color: var(--txt-faint); margin-top: 7px; line-height: 1.5; }
+.impact-headline { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.impact-big { font-family: var(--mono); font-size: 38px; font-weight: 700; color: var(--low); line-height: 1; }
+.impact-eq { font-family: var(--mono); font-size: 11px; color: var(--txt-dim); }
+.impact-eq b { color: var(--txt); }
+
 /* ── Methodology drawer ── */
 .drawer-trigger { position: fixed; right: 18px; bottom: 18px; z-index: 40; }
 .drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 60; }
@@ -153,7 +167,7 @@ body {
 .tip { position: relative; display: inline-flex; align-items: center; cursor: help; }
 .tip-box {
   visibility: hidden; opacity: 0; position: absolute; z-index: 100;
-  background: #1c1f25; border: 1px solid var(--border); color: var(--txt-dim);
+  background: #2a2620; border: 1px solid rgba(0,0,0,0.25); color: #ede9e0;
   font-family: var(--mono); font-size: 11px; line-height: 1.6; font-weight: 400;
   letter-spacing: 0; text-transform: none; text-align: left;
   padding: 11px 13px; border-radius: 7px; width: max-content; max-width: 290px;
@@ -171,7 +185,7 @@ body {
 }
 
 /* ── Airline logo + legend ── */
-.flight-logo { width: 24px; height: 24px; object-fit: contain; border-radius: 5px; background: #fff; padding: 2px; flex-shrink: 0; }
+.flight-logo { width: 24px; height: 24px; object-fit: contain; border-radius: 5px; background: #fff; padding: 2px; flex-shrink: 0; border: 1px solid var(--border); }
 .flight-left { display: flex; align-items: center; gap: 12px; }
 .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 6px 0 18px; }
 .legend-item { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; color: var(--txt-faint); }
