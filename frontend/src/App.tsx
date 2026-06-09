@@ -181,11 +181,14 @@ export default function App() {
   return (
     <>
       <div className="topbar">
-        <div>
-          <span className="brand">SQUALL<span className="dot">.</span>IROPS</span>
-          <span className="brand-sub" style={{ marginLeft: 12 }}>Irregular Operations Intelligence</span>
+        <div className="topbar-left">
+          <span className="brand">SQUALL<span className="dot">.</span>IROPS<span className="cursor">_</span></span>
+          <span className="brand-sub">Irregular Operations Intelligence</span>
         </div>
-        <span className="live-pill"><span className="live-dot" /> LIVE DATA</span>
+        <div className="topbar-right">
+          <span className="live-pill"><span className="live-dot" /> LIVE DATA</span>
+          <a className="gh-link" href="https://github.com/Ashwath-VS/squall" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+        </div>
       </div>
 
       <div className="wrap">

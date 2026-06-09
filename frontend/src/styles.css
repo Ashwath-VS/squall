@@ -4,13 +4,14 @@
   --amber-bright: #ff6b35;
   --amber-dim: rgba(232, 89, 12, 0.42);
   --amber-faint: rgba(232, 89, 12, 0.10);
-  --bg: #f3efe6;               /* ivory */
-  --surface: #fffdf8;          /* warm near-white card */
-  --surface-2: #ebe5d8;
-  --border: rgba(40, 30, 20, 0.13);
-  --txt: #211e18;              /* ink */
-  --txt-dim: #54514a;
-  --txt-faint: #918d83;
+  --bg: #e6e9ef;               /* cool light slate (distinct from cream) */
+  --surface: #ffffff;          /* clean white card */
+  --surface-2: #eef1f6;
+  --border: rgba(20, 26, 44, 0.12);
+  --txt: #181b22;              /* cool ink */
+  --txt-dim: #4d5360;
+  --txt-faint: #888e9c;
+  --banner: #0a0c10;           /* black banner */
   --mono: "JetBrains Mono", monospace;
   --sans: "Space Grotesk", system-ui, sans-serif;
   --low: #2e7d32;
@@ -38,20 +39,25 @@ body {
 .topbar {
   position: sticky; top: 0; z-index: 50;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px clamp(16px, 4vw, 40px);
-  background: rgba(243, 239, 230, 0.88);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
+  height: 60px; padding: 0 clamp(16px, 4vw, 40px);
+  background: var(--banner);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
-.brand { font-family: var(--mono); font-weight: 700; font-size: 16px; letter-spacing: 0.04em; }
-.brand .dot { color: var(--amber); }
-.brand-sub { font-family: var(--mono); font-size: 10px; color: var(--txt-faint); letter-spacing: 0.18em; text-transform: uppercase; }
+.topbar-left { display: flex; align-items: baseline; gap: 14px; }
+.topbar-right { display: flex; align-items: center; gap: 18px; }
+.brand { font-family: var(--mono); font-weight: 800; font-size: 17px; letter-spacing: 0.06em; color: #fff; }
+.brand .dot { color: var(--amber-bright); }
+.brand .cursor { color: var(--amber-bright); font-weight: 700; animation: blink 1.05s step-end infinite; margin-left: 1px; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.brand-sub { font-family: var(--mono); font-size: 10px; color: #7c828f; letter-spacing: 0.18em; text-transform: uppercase; }
+.gh-link { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: #c8ccd4; text-decoration: none; transition: opacity .2s; }
+.gh-link:hover { color: #fff; }
 .live-pill {
   display: inline-flex; align-items: center; gap: 7px;
   font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em;
-  color: var(--low); border: 1px solid rgba(76,175,80,0.3); padding: 4px 10px; border-radius: 3px;
+  color: #5fd97a; border: 1px solid rgba(95,217,122,0.35); padding: 4px 10px; border-radius: 3px;
 }
-.live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--low); animation: pulse 1.8s infinite; }
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: #5fd97a; animation: pulse 1.8s infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
 /* ── Hero / search ── */
