@@ -6,12 +6,16 @@ import { MethodologyDrawer } from "./MethodologyDrawer";
 import type { HubTile, RouteAssessment, CommunicateResult, AirportAssessment, Flight, Verdict } from "./types";
 
 const TODAY = new Date().toISOString().slice(0, 10);
-// Default departure date: ~3 days out (matches backend default).
-const DEFAULT_DATE = (() => {
+const addDays = (n: number) => {
   const d = new Date();
-  d.setDate(d.getDate() + 3);
+  d.setDate(d.getDate() + n);
   return d.toISOString().slice(0, 10);
-})();
+};
+// Default departure date: ~3 days out (matches backend default).
+const DEFAULT_DATE = addDays(3);
+// Operational nowcast horizon: weather-forecast skill is meaningful to ~3 days,
+// so risk is only credible inside that window. Cap the date accordingly.
+const MAX_DATE = addDays(3);
 
 function SourceBadges({ sources }: { sources: Record<string, string> }) {
   return (
@@ -61,7 +65,7 @@ function AirportGauge({ a, label }: { a: AirportAssessment; label: string }) {
         </div>
         {a.node_breakdown.map((n) => (
           <div key={n.node} style={{ marginBottom: 16 }}>
-            <Tooltip text={nodeExplain(n.node, n.subscore, n.weight_pct, n.contribution)} pos="right">
+            <Tooltip text={nodeExplain(n.node, n.subscore, n.weight_pct, n.contribution)} pos="top" block>
               <div className="factor-top" style={{ width: "100%" }}>
                 <span style={{ fontWeight: 600 }}>
                   {nodeLabel(n.node)} <span className="node-tag">{n.subscore}/100 × {n.weight_pct}%</span><HintMark />
@@ -74,7 +78,7 @@ function AirportGauge({ a, label }: { a: AirportAssessment; label: string }) {
             </div>
             {/* Raw evidence signals under each node */}
             {n.signals.slice(0, 4).map((s, j) => (
-              <Tooltip key={j} text={signalExplain(n.node, s.signal, s.points, s.terms)} pos="right">
+              <Tooltip key={j} text={signalExplain(n.node, s.signal, s.points, s.terms)} pos="top" block>
                 <div className="signal-row">
                   <span className="signal-dot" />
                   <span className="signal-text">{s.signal}</span>
@@ -181,8 +185,8 @@ export default function App() {
             <span className="od-arrow">→</span>
             <input className="od-input" value={dest} maxLength={3}
               onChange={(e) => setDest(e.target.value)} placeholder="SIN" />
-            <Tooltip text="Departure date for the live flight list. Defaults to 3 days out for availability. Past dates are blocked. Risk conditions (weather, news, traffic) are always assessed for right now.">
-              <input className="od-input" type="date" value={date} min={TODAY} style={{ width: "auto" }}
+            <Tooltip text="Departure date for the live flight list. Risk is a NOWCAST — built from current weather, news and traffic — so the date is capped at 3 days out, the window where short-range weather forecasting stays skilful. Beyond that, no honest disruption signal exists yet.">
+              <input className="od-input" type="date" value={date} min={TODAY} max={MAX_DATE} style={{ width: "auto" }}
                 onChange={(e) => setDate(e.target.value)} />
             </Tooltip>
             <button className="btn" onClick={() => assess()} disabled={loading || !origin || !dest}>

@@ -71,17 +71,27 @@ async def lookup(iata: str):
     return {"iata": apt["iata"], "name": apt["name"], "city": apt["city"], "country": apt["country"]}
 
 
+# Risk is a nowcast (current weather/news/traffic). Weather-forecast skill is
+# meaningful only ~3 days out, so we refuse to imply a prediction beyond that.
+HORIZON_DAYS = 3
+
+
 def _validate_date(date: str | None):
-    """Reject past dates — you cannot list flights for a date already gone."""
+    """Reject past dates and dates beyond the credible nowcast horizon."""
     if not date:
         return
     try:
         d = datetime.date.fromisoformat(date)
     except ValueError:
         raise HTTPException(status_code=400, detail={"error": "bad_date", "detail": "Use YYYY-MM-DD."})
-    if d < datetime.date.today():
+    today = datetime.date.today()
+    if d < today:
         raise HTTPException(status_code=400, detail={"error": "past_date",
                             "detail": "Departure date cannot be in the past."})
+    if (d - today).days > HORIZON_DAYS:
+        raise HTTPException(status_code=400, detail={"error": "beyond_horizon",
+                            "detail": f"Risk is a nowcast; predictions are credible only "
+                                      f"within {HORIZON_DAYS} days. Pick a nearer date."})
 
 
 @app.get("/api/airport/{iata}")
