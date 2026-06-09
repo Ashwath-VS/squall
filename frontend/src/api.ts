@@ -7,7 +7,9 @@ import type {
 } from "./types";
 
 // Same-origin in prod (nginx proxies /api). Vite proxies in dev.
-const BASE = import.meta.env.VITE_API_BASE_URL || "";
+// Strip any trailing slash so BASE + "/api/..." never becomes "//api/..."
+// (a protocol-relative URL that resolves the host to "api").
+const BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
 
 async function get<T>(path: string): Promise<T> {
   const r = await fetch(`${BASE}${path}`);
