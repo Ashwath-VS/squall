@@ -5,6 +5,7 @@ reinforcing the 'declared methodology' story.
 """
 
 import asyncio
+import datetime
 from typing import Any, Dict
 
 from fastapi import FastAPI, HTTPException
@@ -12,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .config import Config
-from .services import predictor, communicator
+from .services import predictor, communicator, airports
 from .services.predictor import WEIGHTS, GUST_HIGH_KT, WIND_HIGH_KT, VIS_LOW_M, TRAFFIC_BUSY
 from .utils.logger import get_logger
 
@@ -61,6 +62,28 @@ async def overview():
     return {"hubs": tiles}
 
 
+@app.get("/api/lookup/{iata}")
+async def lookup(iata: str):
+    """Lightweight airport name lookup (no external calls) — for input hints."""
+    apt = airports.lookup(iata)
+    if not apt:
+        raise HTTPException(status_code=404, detail={"error": "unknown_airport", "iata": iata})
+    return {"iata": apt["iata"], "name": apt["name"], "city": apt["city"], "country": apt["country"]}
+
+
+def _validate_date(date: str | None):
+    """Reject past dates — you cannot list flights for a date already gone."""
+    if not date:
+        return
+    try:
+        d = datetime.date.fromisoformat(date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail={"error": "bad_date", "detail": "Use YYYY-MM-DD."})
+    if d < datetime.date.today():
+        raise HTTPException(status_code=400, detail={"error": "past_date",
+                            "detail": "Departure date cannot be in the past."})
+
+
 @app.get("/api/airport/{iata}")
 async def airport_detail(iata: str):
     """Predictor detail for a single airport (Screen 2)."""
@@ -75,6 +98,7 @@ async def route(origin: str, dest: str, date: str | None = None):
     """Assess a route + live flight list (Screen 1 -> 2). Optional date=YYYY-MM-DD."""
     if not origin or not dest:
         raise HTTPException(status_code=400, detail="origin and dest required")
+    _validate_date(date)
     result = await predictor.assess_route(origin, dest, date)
     if result.get("error"):
         raise HTTPException(status_code=404, detail=result)
@@ -91,6 +115,7 @@ class CommunicateRequest(BaseModel):
 @app.post("/api/communicate")
 async def communicate(req: CommunicateRequest):
     """Proactive passenger outreach for a chosen flight (Screen 3)."""
+    _validate_date(req.date)
     route_result = await predictor.assess_route(req.origin, req.dest, req.date)
     if route_result.get("error"):
         raise HTTPException(status_code=404, detail=route_result)

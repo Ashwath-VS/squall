@@ -147,6 +147,23 @@ async def _assess_airport_uncached(iata: str, client: Optional[httpx.AsyncClient
     total_w = sum(WEIGHTS[k] for k in available) or 1.0
     score = sum(nodes[k]["score"] * WEIGHTS[k] for k in available) / total_w
 
+    # Per-node breakdown whose `contribution` values sum exactly to `score`.
+    # This is what the UI shows, so the numbers reconcile (raw signal points
+    # are kept as evidence strength, not as score points).
+    node_breakdown: List[Dict[str, Any]] = []
+    for k, v in available.items():
+        eff_weight = WEIGHTS[k] / total_w           # renormalised weight
+        contribution = v["score"] * eff_weight       # points toward final score
+        node_breakdown.append({
+            "node": k,
+            "subscore": round(v["score"]),            # 0-100 for this signal type
+            "weight_pct": round(eff_weight * 100),    # effective weight after renormalising
+            "contribution": round(contribution),      # actual points added to the score
+            "signals": v["factors"],                  # raw evidence (strength, not score pts)
+        })
+    node_breakdown.sort(key=lambda n: n["contribution"], reverse=True)
+
+    # Legacy flat list (still used by some callers)
     factors: List[Dict[str, Any]] = []
     for k, v in available.items():
         for f in v["factors"]:
@@ -158,6 +175,7 @@ async def _assess_airport_uncached(iata: str, client: Optional[httpx.AsyncClient
         "airport": apt,
         "score": round(score),
         "verdict": _verdict(score),
+        "node_breakdown": node_breakdown,
         "factors": factors[:8],
         "nodes_used": list(available.keys()),
         "sources": {

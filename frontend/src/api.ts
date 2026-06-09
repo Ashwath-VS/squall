@@ -20,6 +20,8 @@ async function get<T>(path: string): Promise<T> {
 export const api = {
   overview: () => get<{ hubs: HubTile[] }>("/api/overview"),
   airport: (iata: string) => get<AirportAssessment>(`/api/airport/${iata}`),
+  lookup: (iata: string) =>
+    get<{ iata: string; name: string; city: string; country: string }>(`/api/lookup/${iata}`),
   route: (origin: string, dest: string, date?: string) =>
     get<RouteAssessment>(`/api/route?origin=${origin}&dest=${dest}${date ? `&date=${date}` : ""}`),
   methodology: () => get<Methodology>("/api/methodology"),

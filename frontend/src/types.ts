@@ -18,11 +18,20 @@ export interface Airport {
   tier: string;
 }
 
+export interface NodeBreakdown {
+  node: string;
+  subscore: number;     // 0-100 for this signal type
+  weight_pct: number;   // effective weight after renormalising
+  contribution: number; // actual points added to the final score
+  signals: Factor[];    // raw evidence (strength, not score points)
+}
+
 export interface AirportAssessment {
   iata: string;
   airport: Airport;
   score: number;
   verdict: Verdict;
+  node_breakdown: NodeBreakdown[];
   factors: Factor[];
   nodes_used: string[];
   sources: Record<string, SourceFlag>;

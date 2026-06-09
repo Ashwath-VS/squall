@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
-import { verdictColor, riskBg, fmtDuration, verdictExplain, factorExplain, flightRiskExplain } from "./ui";
+import { verdictColor, riskBg, fmtDuration, verdictExplain, nodeExplain, signalExplain, nodeLabel, flightRiskExplain } from "./ui";
 import { Tooltip, HintMark } from "./Tooltip";
 import { MethodologyDrawer } from "./MethodologyDrawer";
 import type { HubTile, RouteAssessment, CommunicateResult, AirportAssessment, Flight, Verdict } from "./types";
 
+const TODAY = new Date().toISOString().slice(0, 10);
 // Default departure date: ~3 days out (matches backend default).
 const DEFAULT_DATE = (() => {
   const d = new Date();
@@ -52,24 +53,36 @@ function AirportGauge({ a, label }: { a: AirportAssessment; label: string }) {
         </div>
       </Tooltip>
       <SourceBadges sources={a.sources} />
-      <div style={{ marginTop: 18 }}>
-        {a.factors.length === 0 && (
-          <div className="mono" style={{ fontSize: 11, color: "var(--txt-faint)" }}>
-            No elevated signals — calm conditions.
-          </div>
-        )}
-        {a.factors.map((f, i) => (
-          <Tooltip key={i} text={factorExplain(f.node, f.signal, f.points, f.terms)} pos="right">
-            <div className="factor" style={{ width: "100%" }}>
-              <div className="factor-top">
-                <span>{f.signal} <span className="node-tag">[{f.node}]</span><HintMark /></span>
-                <span style={{ color: "var(--amber)" }}>+{f.points}</span>
+
+      {/* Node breakdown — contributions sum to the score */}
+      <div style={{ marginTop: 20 }}>
+        <div className="mono" style={{ fontSize: 9.5, letterSpacing: "0.14em", color: "var(--txt-faint)", marginBottom: 12 }}>
+          // HOW THE {a.score} IS BUILT — WEIGHTED BLEND
+        </div>
+        {a.node_breakdown.map((n) => (
+          <div key={n.node} style={{ marginBottom: 16 }}>
+            <Tooltip text={nodeExplain(n.node, n.subscore, n.weight_pct, n.contribution)} pos="right">
+              <div className="factor-top" style={{ width: "100%" }}>
+                <span style={{ fontWeight: 600 }}>
+                  {nodeLabel(n.node)} <span className="node-tag">{n.subscore}/100 × {n.weight_pct}%</span><HintMark />
+                </span>
+                <span style={{ color: "var(--amber)", fontWeight: 700 }}>+{n.contribution}</span>
               </div>
-              <div className="factor-bar">
-                <div className="factor-fill" style={{ width: `${Math.min(100, f.points)}%` }} />
-              </div>
+            </Tooltip>
+            <div className="factor-bar" style={{ marginTop: 5 }}>
+              <div className="factor-fill" style={{ width: `${Math.min(100, n.contribution)}%` }} />
             </div>
-          </Tooltip>
+            {/* Raw evidence signals under each node */}
+            {n.signals.slice(0, 4).map((s, j) => (
+              <Tooltip key={j} text={signalExplain(n.node, s.signal, s.points, s.terms)} pos="right">
+                <div className="signal-row">
+                  <span className="signal-dot" />
+                  <span className="signal-text">{s.signal}</span>
+                  <span className="signal-strength">{s.points}</span>
+                </div>
+              </Tooltip>
+            ))}
+          </div>
         ))}
       </div>
     </div>
@@ -88,18 +101,43 @@ export default function App() {
   const [outreach, setOutreach] = useState<CommunicateResult | null>(null);
   const [composing, setComposing] = useState(false);
   const [drawer, setDrawer] = useState(false);
+  const [originName, setOriginName] = useState("");
+  const [destName, setDestName] = useState("");
 
   useEffect(() => {
     api.overview().then((r) => setHubs(r.hubs)).catch(() => {});
   }, []);
 
+  // Resolve full airport names as the user types valid 3-letter codes.
+  useEffect(() => {
+    if (origin.length !== 3) { setOriginName(""); return; }
+    let live = true;
+    api.lookup(origin.toUpperCase())
+      .then((a) => { if (live) setOriginName(`${a.name}${a.city ? `, ${a.city}` : ""}`); })
+      .catch(() => { if (live) setOriginName("— unknown code —"); });
+    return () => { live = false; };
+  }, [origin]);
+
+  useEffect(() => {
+    if (dest.length !== 3) { setDestName(""); return; }
+    let live = true;
+    api.lookup(dest.toUpperCase())
+      .then((a) => { if (live) setDestName(`${a.name}${a.city ? `, ${a.city}` : ""}`); })
+      .catch(() => { if (live) setDestName("— unknown code —"); });
+    return () => { live = false; };
+  }, [dest]);
+
   async function assess(o = origin, d = dest) {
+    if (date < TODAY) {
+      setError("Departure date cannot be in the past — pick today or a future date.");
+      return;
+    }
     setLoading(true); setError(""); setRoute(null); setSelected(null); setOutreach(null);
     try {
       const r = await api.route(o.toUpperCase(), d.toUpperCase(), date);
       setRoute(r);
     } catch (e) {
-      setError(`Could not assess ${o.toUpperCase()} → ${d.toUpperCase()}. Check the airport codes.`);
+      setError(`Could not assess ${o.toUpperCase()} → ${d.toUpperCase()}. Check the airport codes are valid IATA codes.`);
     } finally {
       setLoading(false);
     }
@@ -143,13 +181,17 @@ export default function App() {
             <span className="od-arrow">→</span>
             <input className="od-input" value={dest} maxLength={3}
               onChange={(e) => setDest(e.target.value)} placeholder="SIN" />
-            <Tooltip text="Departure date for the live flight list. Defaults to 3 days out for availability. Risk conditions (weather, news, traffic) are always assessed for right now.">
-              <input className="od-input" type="date" value={date} style={{ width: "auto" }}
+            <Tooltip text="Departure date for the live flight list. Defaults to 3 days out for availability. Past dates are blocked. Risk conditions (weather, news, traffic) are always assessed for right now.">
+              <input className="od-input" type="date" value={date} min={TODAY} style={{ width: "auto" }}
                 onChange={(e) => setDate(e.target.value)} />
             </Tooltip>
             <button className="btn" onClick={() => assess()} disabled={loading || !origin || !dest}>
               {loading ? "Assessing…" : "Assess Risk"}
             </button>
+          </div>
+          <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
+            <div className="od-hint">{originName && `ORIGIN · ${originName}`}</div>
+            <div className="od-hint">{destName && `DEST · ${destName}`}</div>
           </div>
           {error && <div className="err" style={{ marginTop: 14 }}>{error}</div>}
         </section>

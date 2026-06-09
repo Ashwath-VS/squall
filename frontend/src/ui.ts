@@ -39,17 +39,29 @@ export function verdictExplain(score: number, verdict: Verdict): string {
   return `Disruption risk ${score} out of 100. "${verdict}" means ${BANDS[verdict]} ${SCALE}`;
 }
 
-export function factorExplain(node: string, signal: string, points: number, terms?: string[]): string {
-  switch (node) {
-    case "traffic":
-      return `${signal}. A lot of aircraft are flying near this airport right now — that means congestion, holding patterns and pressure on landing/takeoff slots, which pushes delay risk up. This signal added +${points} points to the score.`;
-    case "weather":
-      return `${signal}. This weather slows or suspends runway operations (wider aircraft spacing, holds, or temporary stoppages), raising the chance of delays and cancellations. Added +${points} points.`;
-    case "news":
-      return `Live news signal: "${signal}". A recent headline mentions a real disruption event${terms && terms.length ? ` (${terms.join(", ")})` : ""}. Added +${points} points.`;
-    default:
-      return `${signal}. Added +${points} points to the disruption score.`;
-  }
+const NODE_MEANING: Record<string, string> = {
+  weather: "Adverse weather slows or suspends runway operations (wider aircraft spacing, holds, stoppages).",
+  news: "Recent news headlines mentioning real disruption events at this airport.",
+  traffic: "How many aircraft are airborne near the airport right now — a proxy for congestion and slot pressure.",
+};
+
+const NODE_LABEL: Record<string, string> = { weather: "Weather", news: "News signals", traffic: "Traffic density" };
+
+export function nodeLabel(node: string): string {
+  return NODE_LABEL[node] || node;
+}
+
+/** Explains a node's WEIGHTED contribution — these numbers sum to the score. */
+export function nodeExplain(node: string, subscore: number, weightPct: number, contribution: number): string {
+  return `${NODE_LABEL[node] || node}: ${NODE_MEANING[node] || ""} This signal scores ${subscore}/100 on its own, carries ${weightPct}% weight in the blend, so it adds ${contribution} points to the final risk score. (The blend is Weather 50% · News 30% · Traffic 20%, renormalised over whatever signals are live.)`;
+}
+
+/** Explains a single raw signal (evidence strength within a node). */
+export function signalExplain(node: string, signal: string, points: number, terms?: string[]): string {
+  const base = node === "news"
+    ? `Live headline: "${signal}"${terms && terms.length ? ` — matched: ${terms.join(", ")}` : ""}.`
+    : `${signal}.`;
+  return `${base} Relative strength ${points}/100 within the ${NODE_LABEL[node] || node} signal (not a direct score addition — see the signal's weighted contribution above).`;
 }
 
 export function flightRiskExplain(risk: number, verdict: Verdict): string {
