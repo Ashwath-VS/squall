@@ -68,6 +68,25 @@ export function signalExplain(node: string, signal: string, points: number, term
   return `${base} Relative strength ${points}/100 within the ${NODE_LABEL[node] || node} signal (not a direct score addition — see the signal's weighted contribution above).`;
 }
 
+import type { Impact } from "./types";
+
+/** Plain-English tooltip text for each Business Case figure. */
+export function impactExplain(i: Impact) {
+  const perPax = i.assumptions.care_cost_per_pax + i.assumptions.compensation_per_pax;
+  return {
+    combined:
+      `The total value Squall creates for this one flight: the disruption cost the airline avoids by acting early, plus new revenue from selling a protection fee. ${fmtUSD(i.proactive_saving)} saved + ${fmtUSD(i.fee_revenue_per_flight)} fee = ${fmtUSD(i.combined_benefit)}.`,
+    exposure:
+      `Worst case — if this flight were fully disrupted, every one of the ${i.assumptions.pax_per_flight} passengers needs a hotel and meals (~$${i.assumptions.care_cost_per_pax}) plus likely compensation (~$${i.assumptions.compensation_per_pax}) = $${perPax} each. ${i.assumptions.pax_per_flight} × $${perPax} = ${fmtUSD(i.exposure_if_disrupted)}.`,
+    expected:
+      `Not every at-risk flight actually collapses. Multiplying the worst-case bill by today's live risk (${i.risk_pct}%) gives the realistic average cost the airline faces right now: ${fmtUSD(i.exposure_if_disrupted)} × ${i.risk_pct}% = ${fmtUSD(i.expected_reactive_cost)}.`,
+    saving:
+      `By warning and rebooking passengers BEFORE the disruption hits, the airline avoids about ${i.assumptions.proactive_reduction_pct}% of that cost — fewer hotel nights, fewer missed connections, less compensation. ${i.assumptions.proactive_reduction_pct}% of ${fmtUSD(i.expected_reactive_cost)} = ${fmtUSD(i.proactive_saving)}.`,
+    fee:
+      `A new product the airline can sell: a small disruption-protection fee (like Air Canada's "On My Way", ~$${i.assumptions.protection_fee}). If ${i.assumptions.optin_rate_pct}% of ${i.assumptions.pax_per_flight} passengers buy it: ${i.assumptions.pax_per_flight} × ${i.assumptions.optin_rate_pct}% × $${i.assumptions.protection_fee} = ${fmtUSD(i.fee_revenue_per_flight)} extra revenue per flight.`,
+  };
+}
+
 export function flightRiskExplain(risk: number, verdict: Verdict): string {
   return `This flight's disruption risk: ${risk} out of 100 ("${verdict}"). It inherits the live conditions at both ends of the route, plus its departure window — a later flight in worsening conditions scores slightly higher. Same scale as the airport scores above. ${SCALE}`;
 }

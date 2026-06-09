@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
-import { verdictColor, riskBg, fmtDuration, fmtUSD, verdictExplain, nodeExplain, signalExplain, nodeLabel, flightRiskExplain } from "./ui";
+import { verdictColor, riskBg, fmtDuration, fmtUSD, verdictExplain, nodeExplain, signalExplain, nodeLabel, flightRiskExplain, impactExplain } from "./ui";
 import { Tooltip, HintMark } from "./Tooltip";
 import { MethodologyDrawer } from "./MethodologyDrawer";
 import type { HubTile, RouteAssessment, CommunicateResult, AirportAssessment, Flight, Verdict } from "./types";
@@ -182,8 +182,8 @@ export default function App() {
     <>
       <div className="topbar">
         <div>
-          <span className="brand">SQUALL<span className="dot">.</span></span>
-          <span className="brand-sub" style={{ marginLeft: 12 }}>IROPS Intelligence</span>
+          <span className="brand">SQUALL<span className="dot">.</span>IROPS</span>
+          <span className="brand-sub" style={{ marginLeft: 12 }}>Irregular Operations Intelligence</span>
         </div>
         <span className="live-pill"><span className="live-dot" /> LIVE DATA</span>
       </div>
@@ -191,7 +191,7 @@ export default function App() {
       <div className="wrap">
         {/* HERO + SEARCH */}
         <section className="hero">
-          <div className="kicker">S-ASHWATH / TRAVEL-TECH / IROPS</div>
+          <div className="kicker">S-ASHWATH / TRAVEL-TECH / SQUALL.IROPS</div>
           <h1>Predict the disruption<br /><span className="accent">before</span> the airline does.</h1>
           <p>
             Pick a route. Squall checks live weather, disruption news, and how busy the skies are at both
@@ -321,35 +321,51 @@ export default function App() {
                 {outreach && (
                   <>
                     {/* Monetary impact + revenue model */}
-                    <div className="impact">
-                      <div className="impact-title">// BUSINESS CASE · THIS FLIGHT ({outreach.impact.assumptions.pax_per_flight} PAX · RISK {outreach.impact.risk_pct}%)</div>
-                      <div className="impact-headline">
-                        <span className="impact-big">{fmtUSD(outreach.impact.combined_benefit)}</span>
-                        <span className="impact-eq">
-                          combined value per flight = <b>{fmtUSD(outreach.impact.proactive_saving)}</b> disruption cost avoided
-                          + <b>{fmtUSD(outreach.impact.fee_revenue_per_flight)}</b> protection-fee revenue
-                        </span>
-                      </div>
-                      <div className="impact-grid">
-                        <div className="impact-cell">
-                          <div className="impact-val" style={{ color: "var(--high)" }}>{fmtUSD(outreach.impact.exposure_if_disrupted)}</div>
-                          <div className="impact-lbl">Cost exposure if fully disrupted ({outreach.impact.assumptions.pax_per_flight} pax × ${outreach.impact.assumptions.care_cost_per_pax + outreach.impact.assumptions.compensation_per_pax}/pax care + comp)</div>
+                    {(() => {
+                      const ix = impactExplain(outreach.impact);
+                      const a = outreach.impact.assumptions;
+                      return (
+                        <div className="impact">
+                          <div className="impact-title">// BUSINESS CASE · THIS FLIGHT ({a.pax_per_flight} PAX · RISK {outreach.impact.risk_pct}%) — hover any figure</div>
+                          <Tooltip text={ix.combined} block>
+                            <div className="impact-headline" style={{ cursor: "help" }}>
+                              <span className="impact-big">{fmtUSD(outreach.impact.combined_benefit)}</span>
+                              <span className="impact-eq">
+                                combined value per flight = <b>{fmtUSD(outreach.impact.proactive_saving)}</b> disruption cost avoided
+                                + <b>{fmtUSD(outreach.impact.fee_revenue_per_flight)}</b> protection-fee revenue<HintMark />
+                              </span>
+                            </div>
+                          </Tooltip>
+                          <div className="impact-grid">
+                            <Tooltip text={ix.exposure} block>
+                              <div className="impact-cell">
+                                <div className="impact-val" style={{ color: "var(--high)" }}>{fmtUSD(outreach.impact.exposure_if_disrupted)}</div>
+                                <div className="impact-lbl">Cost exposure if fully disrupted ({a.pax_per_flight} pax × ${a.care_cost_per_pax + a.compensation_per_pax}/pax care + comp)<HintMark /></div>
+                              </div>
+                            </Tooltip>
+                            <Tooltip text={ix.expected} block>
+                              <div className="impact-cell">
+                                <div className="impact-val" style={{ color: "var(--moderate)" }}>{fmtUSD(outreach.impact.expected_reactive_cost)}</div>
+                                <div className="impact-lbl">Expected reactive cost (exposure × {outreach.impact.risk_pct}% live risk)<HintMark /></div>
+                              </div>
+                            </Tooltip>
+                            <Tooltip text={ix.saving} block>
+                              <div className="impact-cell">
+                                <div className="impact-val" style={{ color: "var(--low)" }}>{fmtUSD(outreach.impact.proactive_saving)}</div>
+                                <div className="impact-lbl">Saved by acting early (−{a.proactive_reduction_pct}% via timely re-accommodation)<HintMark /></div>
+                              </div>
+                            </Tooltip>
+                            <Tooltip text={ix.fee} block>
+                              <div className="impact-cell">
+                                <div className="impact-val" style={{ color: "var(--amber)" }}>{fmtUSD(outreach.impact.fee_revenue_per_flight)}</div>
+                                <div className="impact-lbl">Protection-fee revenue ({a.optin_rate_pct}% opt-in × ${a.protection_fee} — cf. Air Canada "On My Way")<HintMark /></div>
+                              </div>
+                            </Tooltip>
+                          </div>
+                          <div className="disclaimer">{outreach.impact.note}</div>
                         </div>
-                        <div className="impact-cell">
-                          <div className="impact-val" style={{ color: "var(--moderate)" }}>{fmtUSD(outreach.impact.expected_reactive_cost)}</div>
-                          <div className="impact-lbl">Expected reactive cost (exposure × {outreach.impact.risk_pct}% live risk)</div>
-                        </div>
-                        <div className="impact-cell">
-                          <div className="impact-val" style={{ color: "var(--low)" }}>{fmtUSD(outreach.impact.proactive_saving)}</div>
-                          <div className="impact-lbl">Saved by acting early (−{outreach.impact.assumptions.proactive_reduction_pct}% via timely re-accommodation)</div>
-                        </div>
-                        <div className="impact-cell">
-                          <div className="impact-val" style={{ color: "var(--amber)" }}>{fmtUSD(outreach.impact.fee_revenue_per_flight)}</div>
-                          <div className="impact-lbl">Protection-fee revenue ({outreach.impact.assumptions.optin_rate_pct}% opt-in × ${outreach.impact.assumptions.protection_fee} — cf. Air Canada "On My Way")</div>
-                        </div>
-                      </div>
-                      <div className="disclaimer">{outreach.impact.note}</div>
-                    </div>
+                      );
+                    })()}
 
                     <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
                       <span className="badge badge-sim">PASSENGER DATA · SIMULATED</span>
@@ -381,7 +397,7 @@ export default function App() {
         )}
 
         <footer className="footer">
-          // SQUALL · Predictor + Communicator live · Optimizer (architecture preview) · FastAPI + React ·
+          // SQUALL.IROPS · Predictor + Communicator live · Optimizer (architecture preview) · FastAPI + React ·
           all data live, passenger personas synthetic
         </footer>
       </div>
