@@ -10,6 +10,7 @@ route assessment is bounded by the slowest single call, not their sum.
 
 from __future__ import annotations
 
+import datetime
 from typing import Any, Dict, List
 
 import httpx
@@ -122,6 +123,8 @@ async def fetch_news(client: httpx.AsyncClient, iata: str, name: str = "") -> Di
 async def fetch_flights(client: httpx.AsyncClient, origin: str, dest: str) -> Dict[str, Any]:
     if not Config.SERPAPI_KEY:
         return {"source": "degraded", "reason": "no_serpapi_key", "flights": []}
+    # Google Flights requires an outbound_date. Use ~3 days out for availability.
+    outbound = (datetime.date.today() + datetime.timedelta(days=3)).isoformat()
     try:
         r = await client.get(
             "https://serpapi.com/search",
@@ -129,6 +132,7 @@ async def fetch_flights(client: httpx.AsyncClient, origin: str, dest: str) -> Di
                 "engine": "google_flights",
                 "departure_id": origin.upper(),
                 "arrival_id": dest.upper(),
+                "outbound_date": outbound,
                 "type": "2",
                 "currency": "USD",
                 "hl": "en",
