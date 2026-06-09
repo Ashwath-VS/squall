@@ -1,0 +1,39 @@
+# Stage 1: Build Vue frontend
+FROM node:20-alpine AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm install
+COPY frontend/ ./
+ENV VITE_API_BASE_URL="/"
+RUN npm run build
+
+# Stage 2: Runtime with Python + nginx
+FROM python:3.11-slim AS runner
+RUN apt-get update && apt-get install -y --no-install-recommends nginx \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Python deps
+COPY backend/requirements.txt ./backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt
+
+# Backend source
+COPY backend/ ./backend/
+
+# Built Vue frontend -> nginx html
+COPY --from=frontend-builder /app/frontend/dist /usr/share/nginx/html
+
+# nginx: serve Vue on 8080, proxy /api/* and /health to Flask on 5001
+COPY nginx.prod.conf /etc/nginx/sites-available/default
+RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+
+COPY docker-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 8080
+ENV FLASK_HOST="127.0.0.1"
+ENV FLASK_PORT="5001"
+ENV PYTHONPATH="/app/backend"
+
+CMD ["/entrypoint.sh"]
