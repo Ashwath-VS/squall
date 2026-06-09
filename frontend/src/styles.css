@@ -33,6 +33,15 @@ body {
 
 .mono { font-family: var(--mono); }
 
+/* ── Animation toolkit (tasteful, not overdone) ── */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes growX { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.anim { animation: fadeUp .55s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .anim { animation: none; }
+}
+
 .wrap { max-width: 1100px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px); }
 
 /* ── Top bar ── */
@@ -90,8 +99,8 @@ body {
 
 /* ── Hub tiles ── */
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 16px; cursor: pointer; transition: border-color .15s; }
-.tile:hover { border-color: var(--amber-dim); }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 16px; cursor: pointer; transition: border-color .18s, transform .18s, box-shadow .18s; }
+.tile:hover { border-color: var(--amber-dim); transform: translateY(-3px); box-shadow: 0 8px 22px rgba(20,26,44,0.10); }
 .tile-iata { font-family: var(--mono); font-weight: 700; font-size: 18px; }
 .tile-city { font-size: 11px; color: var(--txt-faint); margin-bottom: 12px; }
 .tile-score { font-family: var(--mono); font-size: 30px; font-weight: 700; line-height: 1; }
@@ -109,19 +118,26 @@ body {
 /* Node header label may be long — let it wrap, never overflow */
 .factor-top { min-width: 0; }
 .factor-top > span:first-child { overflow-wrap: anywhere; }
-.od-hint { font-family: var(--mono); font-size: 10.5px; color: var(--txt-faint); margin-top: 8px; min-height: 14px; }
+.od-hints { display: flex; gap: 24px; margin-top: 10px; }
+.od-hint { font-family: var(--mono); font-size: 10.5px; color: var(--txt-faint); line-height: 1.5; flex: 1 1 0; min-width: 0; max-width: 320px; overflow-wrap: anywhere; min-height: 14px; }
+.nav-btn {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: #c8ccd4;
+  background: transparent; border: 1px solid rgba(255,255,255,0.18); border-radius: 4px;
+  padding: 6px 12px; cursor: pointer; transition: all .2s;
+}
+.nav-btn:hover { color: #0a0c10; background: var(--amber-bright); border-color: var(--amber-bright); }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 22px; }
 .gauge-num { font-family: var(--mono); font-size: 64px; font-weight: 700; line-height: 1; }
 .gauge-label { font-family: var(--mono); font-size: 13px; letter-spacing: 0.12em; margin-top: 6px; }
 .factor { margin-bottom: 12px; }
 .factor-top { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11.5px; margin-bottom: 5px; }
 .factor-bar { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
-.factor-fill { height: 100%; background: var(--amber); border-radius: 3px; }
+.factor-fill { height: 100%; background: var(--amber); border-radius: 3px; transform-origin: left; animation: growX .85s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .node-tag { font-size: 9px; color: var(--txt-faint); text-transform: uppercase; letter-spacing: 0.08em; }
 
 /* ── Flights ── */
-.flight { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; cursor: pointer; transition: border-color .15s; }
-.flight:hover { border-color: var(--amber-dim); }
+.flight { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; cursor: pointer; transition: border-color .15s, transform .15s, box-shadow .15s; }
+.flight:hover { border-color: var(--amber-dim); transform: translateX(3px); box-shadow: 0 4px 14px rgba(20,26,44,0.08); }
 .flight.selected { border-color: var(--amber); background: var(--amber-faint); }
 .flight-meta { font-family: var(--mono); font-size: 12px; }
 .flight-airline { font-weight: 600; }

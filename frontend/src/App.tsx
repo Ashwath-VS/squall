@@ -29,6 +29,25 @@ const STEP_MS = 850;
 const MIN_LOAD_MS = LOAD_STEPS.length * STEP_MS; // ~4.25s minimum
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Animated count-up for the risk score (0 -> target over ~0.8s).
+function CountUp({ target }: { target: number }) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    const start = performance.now();
+    const dur = 800;
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setVal(Math.round(target * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target]);
+  return <>{val}</>;
+}
+
 function SourceBadges({ sources }: { sources: Record<string, string> }) {
   return (
     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
@@ -53,7 +72,7 @@ function SectionHead({ idx, title }: { idx: string; title: string }) {
 
 function AirportGauge({ a, label }: { a: AirportAssessment; label: string }) {
   return (
-    <div className="card">
+    <div className="card anim">
       <div className="mono" style={{ fontSize: 10, color: "var(--txt-faint)", letterSpacing: "0.14em" }}>
         {label} · {a.iata}
       </div>
@@ -61,7 +80,7 @@ function AirportGauge({ a, label }: { a: AirportAssessment; label: string }) {
       <Tooltip text={verdictExplain(a.score, a.verdict)}>
         <div>
           <div className="gauge-num" style={{ color: verdictColor(a.verdict) }}>
-            {a.score}<span style={{ fontSize: 18, color: "var(--txt-faint)" }}>/100</span>
+            <CountUp target={a.score} /><span style={{ fontSize: 18, color: "var(--txt-faint)" }}>/100</span>
           </div>
           <div className="gauge-label" style={{ color: verdictColor(a.verdict), display: "flex", alignItems: "center" }}>
             {a.verdict}<HintMark />
@@ -187,6 +206,7 @@ export default function App() {
         </div>
         <div className="topbar-right">
           <span className="live-pill"><span className="live-dot" /> LIVE DATA</span>
+          <button className="nav-btn" onClick={() => setDrawer(true)}>Methodology</button>
           <a className="gh-link" href="https://github.com/Ashwath-VS/squall" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
         </div>
       </div>
@@ -216,7 +236,7 @@ export default function App() {
               {loading ? "Assessing…" : "Assess Risk"}
             </button>
           </div>
-          <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
+          <div className="od-hints">
             <div className="od-hint">{originName && `ORIGIN · ${originName}`}</div>
             <div className="od-hint">{destName && `DEST · ${destName}`}</div>
           </div>
@@ -226,7 +246,7 @@ export default function App() {
         {/* STAGED LOADING */}
         {loading && (
           <section style={{ marginTop: 20 }}>
-            <div className="loading-panel">
+            <div className="loading-panel anim">
               <div className="loading-title">// ASSESSING {origin.toUpperCase()} → {dest.toUpperCase()} · LIVE PIPELINE</div>
               {LOAD_STEPS.map((s, i) => (
                 <div key={i} className={`load-step ${i < loadStep ? "done" : i === loadStep ? "active" : ""}`}>
@@ -248,8 +268,8 @@ export default function App() {
             <SectionHead idx="01" title="Network Risk Overview · Live Hubs" />
             <div className="tiles">
               {hubs.length === 0 && <div className="spinner">Loading live hub status…</div>}
-              {hubs.map((h) => (
-                <div key={h.iata} className="tile" onClick={() => { setOrigin(h.iata); assess(h.iata, dest); }}>
+              {hubs.map((h, hi) => (
+                <div key={h.iata} className="tile anim" style={{ animationDelay: `${hi * 60}ms` }} onClick={() => { setOrigin(h.iata); assess(h.iata, dest); }}>
                   <div className="tile-iata">{h.iata}</div>
                   <div className="tile-city">{h.city || h.name}</div>
                   <div className="tile-score" style={{ color: verdictColor(h.verdict) }}>{h.score}</div>
@@ -295,7 +315,7 @@ export default function App() {
               </div>
             )}
             {route.flights.map((f: Flight, i) => (
-              <div key={i} className={`flight ${selected === i ? "selected" : ""}`} onClick={() => pickFlight(i)}>
+              <div key={i} className={`flight anim ${selected === i ? "selected" : ""}`} style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }} onClick={() => pickFlight(i)}>
                 <div className="flight-left">
                   {f.logo
                     ? <img className="flight-logo" src={f.logo} alt={f.airline} loading="lazy" />
@@ -328,7 +348,7 @@ export default function App() {
                       const ix = impactExplain(outreach.impact);
                       const a = outreach.impact.assumptions;
                       return (
-                        <div className="impact">
+                        <div className="impact anim">
                           <div className="impact-title">// BUSINESS CASE · THIS FLIGHT ({a.pax_per_flight} PAX · RISK {outreach.impact.risk_pct}%) — hover any figure</div>
                           <Tooltip text={ix.combined} block>
                             <div className="impact-headline" style={{ cursor: "help" }}>
@@ -376,8 +396,8 @@ export default function App() {
                         {outreach.drafted} messages drafted
                       </span>
                     </div>
-                    {outreach.outreach.map((p) => (
-                      <div className="pax" key={p.id}>
+                    {outreach.outreach.map((p, pi) => (
+                      <div className="pax anim" key={p.id} style={{ animationDelay: `${pi * 80}ms` }}>
                         <div className="pax-head">
                           <span className="pax-id">{p.id}</span>
                           <span className="pax-seg">{p.segment} · {p.tier} tier · {p.party}</span>
@@ -405,9 +425,6 @@ export default function App() {
         </footer>
       </div>
 
-      <div className="drawer-trigger">
-        <button className="btn btn-ghost" onClick={() => setDrawer(true)}>Methodology</button>
-      </div>
       {drawer && <MethodologyDrawer onClose={() => setDrawer(false)} />}
     </>
   );
